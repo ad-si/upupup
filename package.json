@@ -1,0 +1,9 @@
+{
+	"name": "upupup",
+	"version": "0.0.1",
+	"dependencies": {
+		"formidable": "1.0.14",
+		"http-auth": "1.2.7"
+	}
+	
+}
