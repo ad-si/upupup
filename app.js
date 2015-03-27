@@ -40,56 +40,96 @@ app.post('/upload', function (request, response) {
 			files = [],
 			fields = []
 
-		form
-			.on('field', function (field, value) {
-				console.log(field, value)
-				fields.push({
-					name: field,
-					value: value
+
+		function makeDir(callback) {
+
+			var directoryName = new Date()
+					.toJSON()
+					.replace(/:/g, '-')
+					.slice(0, 19),
+				directoryPath = path.join(__dirname, 'files', directoryName)
+
+			fs.mkdir(
+				directoryPath,
+				function (error) {
+					if (error &&
+						error.message.search('file already exists') !== -1) {
+
+						console.error(error.message)
+						makeDir(callback)
+					}
+					else
+						callback(directoryPath)
 				})
+		}
+
+		function onField(field, value) {
+
+			console.log(field, value)
+
+			fields.push({
+				name: field,
+				value: value
+			})
+		}
+
+		function onFile(field, file, directoryName) {
+
+			console.log(file.name)
+
+			files.push({
+				name: file.name,
+				type: file.type,
+				size: file.size
 			})
 
-			.on('file', function (field, file) {
-				console.log(file.name)
+			var newfilePath = path.join(
+				directoryName,
+				file.name
+					.toLowerCase()
+					.replace(/ /g, '-')
+			)
 
-				files.push({
-					name: file.name,
-					type: file.type,
-					size: file.size
+			fs.rename(
+				file.path,
+				newfilePath,
+				function (error) {
+					if (error) throw error
+				}
+			)
+		}
+
+		function onEnd() {
+
+			response.send(
+				'<h1>Upload completed</h1>' +
+				'\n\n' +
+				'Received files:\n\n' +
+				'<ul>' +
+				files
+					.map(function (file) {
+						return '<li>' + file.name + '</li>'
+					})
+					.join('') +
+				'</ul>' +
+				'<br>' +
+				'<a href="/">Upload more</a>'
+			)
+			response.end()
+		}
+
+
+		makeDir(function (directoryPath) {
+
+			form
+				.on('field', onField)
+				.on('file', function (field, file) {
+					onFile(field, file, directoryPath)
 				})
+				.on('end', onEnd)
 
-				var filePath = path.join(
-					__dirname,
-					'files',
-					file.name.toLowerCase().replace(/ /g, '-')
-				)
-
-				fs.rename(file.path, filePath, function (error) {
-					if (error)
-						console.log('Error: ' + error)
-				})
-			})
-
-			.on('end', function () {
-
-				response.send(
-					'<h1>Upload completed</h1>' +
-					'\n\n' +
-					'Received files:\n\n' +
-					'<ul>' +
-					files
-						.map(function (file) {
-							return '<li>' + file.name + '</li>'
-						})
-						.join('') +
-					'</ul>' +
-					'<br>' +
-					'<a href="/">Upload more</a>'
-				)
-				response.end()
-			})
-
-		form.parse(request)
+			form.parse(request)
+		})
 	})
 })
 
