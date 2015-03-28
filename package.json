@@ -5,6 +5,7 @@
   "dependencies": {
     "express": "^4.12.3",
     "formidable": "1.0.14",
-    "http-auth": "1.2.7"
+    "http-auth": "1.2.7",
+    "jade": "^1.9.2"
   }
 }

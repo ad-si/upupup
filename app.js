@@ -1,6 +1,4 @@
 var formidable = require('formidable'),
-	http = require('http'),
-	util = require('util'),
 	fs = require('fs'),
 	path = require('path'),
 	auth = require('http-auth'),
@@ -14,17 +12,8 @@ var formidable = require('formidable'),
 
 
 app.get('/', function (request, response) {
-
 	basic.apply(request, response, function () {
-
-		response.send(
-			'<form action="/upload" enctype="multipart/form-data" method="post">' +
-			'<input type="file" name="upload" multiple="multiple">' +
-			'<br>' +
-			'<br>' +
-			'<input type="submit" value="Upload">' +
-			'</form>'
-		)
+		response.render('index.jade')
 	})
 })
 
@@ -38,16 +27,19 @@ app.post('/upload', function (request, response) {
 
 		var form = new formidable.IncomingForm(),
 			files = [],
-			fields = []
+			fields = [],
+			directoryIsCreated = false,
+			directoryPath
 
 
 		function makeDir(callback) {
 
 			var directoryName = new Date()
-					.toJSON()
-					.replace(/:/g, '-')
-					.slice(0, 19),
-				directoryPath = path.join(__dirname, 'files', directoryName)
+				.toJSON()
+				.replace(/:/g, '-')
+				.slice(0, 19)
+
+			directoryPath = path.join(__dirname, 'files', directoryName)
 
 			fs.mkdir(
 				directoryPath,
@@ -59,7 +51,7 @@ app.post('/upload', function (request, response) {
 						makeDir(callback)
 					}
 					else
-						callback(directoryPath)
+						callback()
 				})
 		}
 
@@ -73,18 +65,29 @@ app.post('/upload', function (request, response) {
 			})
 		}
 
-		function onFile(field, file, directoryName) {
+		function onFile(field, file) {
 
-			console.log(file.name)
+			if (file.size > 0) {
 
-			files.push({
-				name: file.name,
-				type: file.type,
-				size: file.size
-			})
+				files.push({
+					name: file.name,
+					type: file.type,
+					size: file.size
+				})
 
-			var newfilePath = path.join(
-				directoryName,
+				if (!directoryIsCreated)
+					makeDir(function () {
+						moveFile(file)
+					})
+				else
+					moveFile(file)
+			}
+		}
+
+		function moveFile(file) {
+
+			var newFilePath = path.join(
+				directoryPath,
 				file.name
 					.toLowerCase()
 					.replace(/ /g, '-')
@@ -92,7 +95,7 @@ app.post('/upload', function (request, response) {
 
 			fs.rename(
 				file.path,
-				newfilePath,
+				newFilePath,
 				function (error) {
 					if (error) throw error
 				}
@@ -100,36 +103,15 @@ app.post('/upload', function (request, response) {
 		}
 
 		function onEnd() {
-
-			response.send(
-				'<h1>Upload completed</h1>' +
-				'\n\n' +
-				'Received files:\n\n' +
-				'<ul>' +
-				files
-					.map(function (file) {
-						return '<li>' + file.name + '</li>'
-					})
-					.join('') +
-				'</ul>' +
-				'<br>' +
-				'<a href="/">Upload more</a>'
-			)
-			response.end()
+			response.render('upload.jade', {files: files})
 		}
 
+		form
+			.on('field', onField)
+			.on('file', onFile)
+			.on('end', onEnd)
 
-		makeDir(function (directoryPath) {
-
-			form
-				.on('field', onField)
-				.on('file', function (field, file) {
-					onFile(field, file, directoryPath)
-				})
-				.on('end', onEnd)
-
-			form.parse(request)
-		})
+		form.parse(request)
 	})
 })
 
