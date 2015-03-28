@@ -24,99 +24,100 @@ app.get('/', function (request, response) {
 	response.render('index.jade')
 })
 
+app
+	.route('/upload')
+	.get(function (request, response) {
+		response.redirect('/')
+	})
+	.post(function (request, response) {
 
-app.get('/upload', function (request, response) {
-	response.redirect('/')
-})
-app.post('/upload', function (request, response) {
-
-	var form = new formidable.IncomingForm(),
-		files = [],
-		fields = [],
-		directoryIsCreated = false,
-		directoryPath
+		var form = new formidable.IncomingForm(),
+			files = [],
+			fields = [],
+			directoryIsCreated = false,
+			directoryPath
 
 
-	function makeDir(callback) {
+		function makeDir(callback) {
 
-		var directoryName = new Date()
-			.toJSON()
-			.replace(/:/g, '-')
-			.slice(0, 19)
+			var directoryName = new Date()
+				.toJSON()
+				.replace(/:/g, '-')
+				.slice(0, 19)
 
-		directoryPath = path.join(__dirname, 'files', directoryName)
+			directoryPath = path.join(__dirname, 'files', directoryName)
 
-		fs.mkdir(
-			directoryPath,
-			function (error) {
-				if (error &&
-					error.message.search('file already exists') !== -1) {
+			fs.mkdir(
+				directoryPath,
+				function (error) {
+					if (error &&
+						error.message.search('file already exists') !== -1) {
 
-					console.error(error.message)
-					makeDir(callback)
-				}
-				else
-					callback()
-			})
-	}
-
-	function onField(field, value) {
-
-		console.log(field, value)
-
-		fields.push({
-			name: field,
-			value: value
-		})
-	}
-
-	function onFile(field, file) {
-
-		if (file.size > 0) {
-
-			files.push({
-				name: file.name,
-				type: file.type,
-				size: file.size
-			})
-
-			if (!directoryIsCreated)
-				makeDir(function () {
-					moveFile(file)
+						console.error(error.message)
+						makeDir(callback)
+					}
+					else
+						callback()
 				})
-			else
-				moveFile(file)
 		}
-	}
 
-	function moveFile(file) {
+		function onField(field, value) {
 
-		var newFilePath = path.join(
-			directoryPath,
-			file.name
-				.toLowerCase()
-				.replace(/ /g, '-')
-		)
+			console.log(field, value)
 
-		fs.rename(
-			file.path,
-			newFilePath,
-			function (error) {
-				if (error) throw error
+			fields.push({
+				name: field,
+				value: value
+			})
+		}
+
+		function onFile(field, file) {
+
+			if (file.size > 0) {
+
+				files.push({
+					name: file.name,
+					type: file.type,
+					size: file.size
+				})
+
+				if (!directoryIsCreated)
+					makeDir(function () {
+						moveFile(file)
+					})
+				else
+					moveFile(file)
 			}
-		)
-	}
+		}
 
-	function onEnd() {
-		response.render('upload.jade', {files: files})
-	}
+		function moveFile(file) {
 
-	form
-		.on('field', onField)
-		.on('file', onFile)
-		.on('end', onEnd)
+			var newFilePath = path.join(
+				directoryPath,
+				file.name
+					.toLowerCase()
+					.replace(/ /g, '-')
+			)
 
-	form.parse(request)
-})
+			fs.rename(
+				file.path,
+				newFilePath,
+				function (error) {
+					if (error) throw error
+				}
+			)
+		}
+
+		function onEnd() {
+			response.render('upload.jade', {files: files})
+		}
+
+		form
+			.on('field', onField)
+			.on('file', onFile)
+			.on('end', onEnd)
+
+		form.parse(request)
+	})
 
 module.exports = app
