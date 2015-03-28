@@ -1,0 +1,17 @@
+extends layout
+
+block body
+    main
+        if files && files.length
+            h1 Upload completed
+            hr
+            p Received files:
+            ul
+                each file in files
+                    li= file.name
+        else
+            h1 Upload failed
+            p.warning No valid files were specified!
+
+        hr
+        a.button(href="/") Upload more

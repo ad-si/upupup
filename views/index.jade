@@ -1,0 +1,13 @@
+extends layout
+
+block body
+    main
+        h1 Upupup
+        p#subtitle Easily upload files to my server.
+        hr
+        form(action='/upload' enctype='multipart/form-data' method='post')
+            fieldset
+                label() Select files to upload: <br><br>
+                    input(type='file' name='upload' multiple='multiple')
+            hr
+            input(type='submit' value='Upload')
