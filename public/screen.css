@@ -53,8 +53,10 @@ fieldset {
 
 .button,
 input[type='submit'] {
+    display: inline-block;
     padding: 0.4em 0.8em;
     background-color: rgb(200, 200, 200);
+    margin-bottom: 1em;
 }
 
 a.button {
